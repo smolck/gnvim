@@ -236,6 +236,44 @@ pub struct CmdlineShow {
     pub level: u64,
 }
 
+#[derive(Debug)]
+pub struct MsgShow {
+    pub kind: MsgShowKind,
+    pub content: Vec<(u64, String)>,
+    pub replace_last: bool,
+}
+
+#[derive(Debug)]
+pub enum MsgShowKind {
+    Unknown,
+    Confirm,
+    ConfirmSub,
+    Emsg,
+    Echo,
+    EchoMsg,
+    EchoErr,
+    ReturnPrompt,
+    QuickFix,
+    Wmsg,
+}
+
+impl From<&str> for MsgShowKind {
+    fn from(from: &str) -> Self {
+        match from {
+            "confirm" => MsgShowKind::Confirm,
+            "confirm_sub" => MsgShowKind::ConfirmSub,
+            "emsg" => MsgShowKind::Emsg,
+            "echo" => MsgShowKind::Echo,
+            "echomsg" => MsgShowKind::EchoMsg,
+            "echoerr" => MsgShowKind::EchoErr,
+            "return_prompt" => MsgShowKind::ReturnPrompt,
+            "quickfix" => MsgShowKind::QuickFix,
+            "wmsg" => MsgShowKind::Wmsg,
+            _ => MsgShowKind::Unknown,
+        }
+    }
+}
+
 pub enum RedrawEvent {
     SetTitle(String),
 
@@ -279,6 +317,9 @@ pub enum RedrawEvent {
     WildmenuShow(Vec<String>),
     WildmenuHide(),
     WildmenuSelect(i64),
+
+    MsgShow(Vec<MsgShow>),
+    MsgClear(),
 
     Ignored(String),
     Unknown(String),
@@ -324,6 +365,8 @@ impl fmt::Display for RedrawEvent {
             RedrawEvent::WildmenuShow(..) => write!(fmt, "WildmenuShow"),
             RedrawEvent::WildmenuHide(..) => write!(fmt, "WildmenuHide"),
             RedrawEvent::WildmenuSelect(..) => write!(fmt, "WildmenuSelect"),
+            RedrawEvent::MsgShow(..) => write!(fmt, "MsgShow"),
+            RedrawEvent::MsgClear(..) => write!(fmt, "MsgClear"),
             RedrawEvent::Ignored(..) => write!(fmt, "Ignored"),
             RedrawEvent::Unknown(..) => write!(fmt, "Unknown"),
         }
@@ -472,23 +515,6 @@ fn parse_notify(name: &str, args: Vec<Value>) -> Option<Notify> {
         _ => None,
     }
 }
-
-/*
-GLOBALS:
-    ["set_title", title]
-    ["set_icon", icon]
-    ["mode_info_set", cursor_style_enabled, mode_info]
-    ["option_set", name, value]
-    ["mode_change", mode, mode_idx]
-    ["mouse_on"]
-    ["mouse_off"]
-    ["busy_on"]
-    ["busy_off"]
-    ["suspend"]
-    ["update_menu"]
-    ["bell"]
-    ["visual_bell"]
- */
 
 fn parse_redraw_event(args: Vec<Value>) -> Vec<RedrawEvent> {
     args.into_iter()
@@ -801,6 +827,30 @@ fn parse_redraw_event(args: Vec<Value>) -> Vec<RedrawEvent> {
                     let args = unwrap_array!(args[1]);
                     let item = unwrap_i64!(args[0]);
                     RedrawEvent::WildmenuSelect(item)
+                }
+                "msg_show" => {
+                    let msgs = unwrap_array!(args)[1..]
+                        .iter()
+                        .map(|args| {
+                            let kind = MsgShowKind::from(unwrap_str!(args[0]));
+                            let replace_last = unwrap_bool!(args[2]);
+                            let content: Vec<(u64, String)> = unwrap_array!(args[1])
+                                .iter()
+                                .map(|v| {
+                                    let attr_id = unwrap_u64!(v[0]);
+                                    let text = unwrap_str!(v[1]);
+                                    (attr_id, text.to_string())
+                                }).collect();
+
+                            MsgShow {
+                                kind, content, replace_last,
+                            }
+                        }).collect();
+
+                    RedrawEvent::MsgShow(msgs)
+                }
+                "msg_clear" => {
+                    RedrawEvent::MsgClear()
                 }
                 "mouse_on" | "mouse_off" => {
                     RedrawEvent::Ignored(cmd.to_string())
