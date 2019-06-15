@@ -125,7 +125,6 @@ impl MessagesHandler {
     fn set_styles_post20(&self, hl_defs: &HlDefs) {
         let css = format!(
             "box {{
-                margin: 5px;
                 background-color: #{bg};
                 box-shadow: 0px 5px 5px 0px rgba(0, 0, 0, 0.75);
                 border: 1px solid #{fg};
@@ -152,7 +151,6 @@ impl MessagesHandler {
     fn set_styles_pre20(&self, hl_defs: &HlDefs) {
         let css = format!(
             "GtkBox {{
-                margin: 5px;
                 background-color: #{bg};
                 box-shadow: 0px 5px 5px 0px rgba(0, 0, 0, 0.75);
                 border: 1px solid #{fg};
