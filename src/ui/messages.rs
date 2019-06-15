@@ -8,9 +8,7 @@ use ui::color::Color;
 use nvim_bridge::{MsgShow, MsgShowKind};
 
 struct Message {
-    frame: gtk::Box,
-    label: gtk::Label,
-    kind: gtk::Image,
+    container: gtk::Box,
 }
 
 impl Message {
@@ -37,33 +35,31 @@ impl Message {
         label.set_line_wrap_mode(pango::WrapMode::WordChar);
         label.set_xalign(0.0);
 
-        let frame = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-        frame.set_halign(gtk::Align::End);
-        frame.set_valign(gtk::Align::Start);
+        let box_ = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+        box_.set_halign(gtk::Align::End);
+        box_.set_valign(gtk::Align::Start);
 
         let buf = get_icon_pixbuf(&msg.kind, &hl_defs.default_fg, size);
         let kind = gtk::Image::new_from_pixbuf(&buf);
 
-        frame.pack_start(&kind, false, true, 0);
-        frame.pack_start(&label, false, true, 0);
+        box_.pack_start(&kind, false, true, 0);
+        box_.pack_start(&label, false, true, 0);
 
-        add_css_provider!(css_provider, frame, label, kind);
+        add_css_provider!(css_provider, box_, label, kind);
 
         Self {
-            frame,
-            label,
-            kind,
+            container: box_,
         }
     }
 
     fn widget(&self) -> gtk::Widget {
-        self.frame.clone().upcast::<gtk::Widget>()
+        self.container.clone().upcast::<gtk::Widget>()
     }
 }
 
 impl Drop for Message {
     fn drop(&mut self) {
-        self.frame.destroy();
+        self.container.destroy();
     }
 }
 
@@ -107,7 +103,7 @@ impl MessagesHandler {
         }
 
         let msg = Message::new(msg, hl_defs, &self.css_provider, self.font.height as f64);
-        self.container.pack_end(&msg.widget(), false, true, 0);
+        self.container.pack_end(&msg.widget(), false, true, 5);
         self.messages.push(msg);
 
         self.container.show_all();
@@ -119,10 +115,17 @@ impl MessagesHandler {
     }
 
     pub fn set_colors(&self, hl_defs: &HlDefs) {
+        if gtk::get_minor_version() < 20 {
+            self.set_styles_pre20(hl_defs);
+        } else {
+            self.set_styles_post20(hl_defs);
+        }
+    }
+
+    fn set_styles_post20(&self, hl_defs: &HlDefs) {
         let css = format!(
             "box {{
                 margin: 5px;
-                min-width: 430px;
                 background-color: #{bg};
                 box-shadow: 0px 5px 5px 0px rgba(0, 0, 0, 0.75);
                 border: 1px solid #{fg};
@@ -139,6 +142,33 @@ impl MessagesHandler {
             {font_wild}
             ",
             font_wild = self.font.as_wild_css(FontUnit::Point),
+            bg = hl_defs.default_bg.to_hex(),
+            fg = hl_defs.default_fg.to_hex(),
+        );
+
+        gtk::CssProvider::load_from_data(&self.css_provider, css.as_bytes()).unwrap();
+    }
+
+    fn set_styles_pre20(&self, hl_defs: &HlDefs) {
+        let css = format!(
+            "GtkBox {{
+                margin: 5px;
+                background-color: #{bg};
+                box-shadow: 0px 5px 5px 0px rgba(0, 0, 0, 0.75);
+                border: 1px solid #{fg};
+            }}
+
+            GtkImage {{
+                padding: 10px;
+            }}
+
+            GtkLabel {{
+                padding: 10px;
+            }}
+
+            {font_wild}
+            ",
+            font_wild = self.font.as_wild_css(FontUnit::Pixel),
             bg = hl_defs.default_bg.to_hex(),
             fg = hl_defs.default_fg.to_hex(),
         );
