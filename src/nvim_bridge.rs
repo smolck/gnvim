@@ -224,6 +224,7 @@ pub struct PopupmenuShow {
     pub selected: i64,
     pub row: u64,
     pub col: u64,
+    pub grid: i64,
 }
 
 #[derive(Debug)]
@@ -276,10 +277,6 @@ pub enum RedrawEvent {
     CmdlineBlockAppend((u64, String)),
     CmdlineBlockHide(),
 
-    WildmenuShow(Vec<String>),
-    WildmenuHide(),
-    WildmenuSelect(i64),
-
     Ignored(String),
     Unknown(String),
 }
@@ -321,9 +318,6 @@ impl fmt::Display for RedrawEvent {
             RedrawEvent::CmdlineBlockHide(..) => {
                 write!(fmt, "CmdlineBlockHide")
             }
-            RedrawEvent::WildmenuShow(..) => write!(fmt, "WildmenuShow"),
-            RedrawEvent::WildmenuHide(..) => write!(fmt, "WildmenuHide"),
-            RedrawEvent::WildmenuSelect(..) => write!(fmt, "WildmenuSelect"),
             RedrawEvent::Ignored(..) => write!(fmt, "Ignored"),
             RedrawEvent::Unknown(..) => write!(fmt, "Unknown"),
         }
@@ -674,6 +668,7 @@ fn parse_redraw_event(args: Vec<Value>) -> Vec<RedrawEvent> {
                     let selected = unwrap_i64!(args[1]);
                     let row = unwrap_u64!(args[2]);
                     let col = unwrap_u64!(args[3]);
+                    let grid = unwrap_i64!(args[4]);
 
                     let mut items = vec![];
                     for item in unwrap_array!(args[0]) {
@@ -696,6 +691,7 @@ fn parse_redraw_event(args: Vec<Value>) -> Vec<RedrawEvent> {
                         selected,
                         row,
                         col,
+                        grid,
                     })
                 }
                 "popupmenu_hide" => RedrawEvent::PopupmenuHide(),
@@ -787,21 +783,6 @@ fn parse_redraw_event(args: Vec<Value>) -> Vec<RedrawEvent> {
                     ))
                 }
                 "cmdline_block_hide" => RedrawEvent::CmdlineBlockHide(),
-                "wildmenu_show" => {
-                    let args = unwrap_array!(args[1]);
-                    let items: Vec<String> = unwrap_array!(args[0])
-                        .iter()
-                        .map(|v| unwrap_str!(v).to_string())
-                        .collect();
-
-                    RedrawEvent::WildmenuShow(items)
-                }
-                "wildmenu_hide" => RedrawEvent::WildmenuHide(),
-                "wildmenu_select" => {
-                    let args = unwrap_array!(args[1]);
-                    let item = unwrap_i64!(args[0]);
-                    RedrawEvent::WildmenuSelect(item)
-                }
                 "mouse_on" | "mouse_off" => {
                     RedrawEvent::Ignored(cmd.to_string())
                 }

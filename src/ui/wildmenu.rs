@@ -107,11 +107,11 @@ impl Wildmenu {
         }
     }
 
-    pub fn set_items(&mut self, items: &Vec<String>) {
+    pub fn set_items(&mut self, items: &Vec<nvim_bridge::CompletionItem>) {
         self.clear();
 
         for item in items {
-            let label = gtk::Label::new(item.as_str());
+            let label = gtk::Label::new(item.word.as_str());
             label.set_halign(gtk::Align::Start);
 
             let row = gtk::ListBoxRow::new();

@@ -64,6 +64,7 @@ struct UIState {
     current_grid: u64,
 
     popupmenu: Popupmenu,
+    wildmenu_shown: bool,
     cmdline: Cmdline,
     tabline: Tabline,
     cursor_tooltip: CursorTooltip,
@@ -287,6 +288,7 @@ impl UI {
                 grids: grids,
                 mode_infos: vec![],
                 current_grid: 1,
+                wildmenu_shown: false,
                 popupmenu: Popupmenu::new(&overlay, nvim.clone()),
                 cmdline,
                 overlay,
@@ -673,45 +675,62 @@ fn handle_redraw_event(
                 }
             }
             RedrawEvent::PopupmenuShow(popupmenu) => {
-                state
-                    .popupmenu
-                    .set_items(popupmenu.items.clone(), &state.hl_defs);
+                if popupmenu.grid == -1 {
+                    state.wildmenu_shown = true;
+                    state.cmdline.wildmenu_show(&popupmenu.items)
+                } else {
+                    state
+                        .popupmenu
+                        .set_items(popupmenu.items.clone(), &state.hl_defs);
 
-                let grid = state.grids.get(&state.current_grid).unwrap();
-                let mut rect =
-                    grid.get_rect_for_cell(popupmenu.row, popupmenu.col);
+                    let grid = state.grids.get(&state.current_grid).unwrap();
+                    let mut rect =
+                        grid.get_rect_for_cell(popupmenu.row, popupmenu.col);
 
-                let extra_h = state.tabline.get_height();
-                rect.y -= extra_h;
+                    let extra_h = state.tabline.get_height();
+                    rect.y -= extra_h;
 
-                state.popupmenu.set_anchor(rect);
-                state.popupmenu.show();
-                state
-                    .popupmenu
-                    .select(popupmenu.selected as i32, &state.hl_defs);
+                    state.popupmenu.set_anchor(rect);
+                    state.popupmenu.show();
+                    state
+                        .popupmenu
+                        .select(popupmenu.selected as i32, &state.hl_defs);
 
-                // If the cursor tooltip is visible at the same time, move
-                // it out of our way.
-                if state.cursor_tooltip.is_visible() {
-                    if state.popupmenu.is_above_anchor() {
-                        state.cursor_tooltip.force_gravity(Some(Gravity::Down));
-                    } else {
-                        state.cursor_tooltip.force_gravity(Some(Gravity::Up));
+                    // If the cursor tooltip is visible at the same time, move
+                    // it out of our way.
+                    if state.cursor_tooltip.is_visible() {
+                        if state.popupmenu.is_above_anchor() {
+                            state
+                                .cursor_tooltip
+                                .force_gravity(Some(Gravity::Down));
+                        } else {
+                            state
+                                .cursor_tooltip
+                                .force_gravity(Some(Gravity::Up));
+                        }
+
+                        state.cursor_tooltip.refresh_position();
                     }
-
-                    state.cursor_tooltip.refresh_position();
                 }
             }
             RedrawEvent::PopupmenuHide() => {
-                state.popupmenu.hide();
+                if state.wildmenu_shown {
+                    state.cmdline.wildmenu_hide();
+                } else {
+                    state.popupmenu.hide();
 
-                // Undo any force positioning of cursor tool tip that might
-                // have occured on popupmenu show.
-                state.cursor_tooltip.force_gravity(None);
-                state.cursor_tooltip.refresh_position();
+                    // Undo any force positioning of cursor tool tip that might
+                    // have occured on popupmenu show.
+                    state.cursor_tooltip.force_gravity(None);
+                    state.cursor_tooltip.refresh_position();
+                }
             }
             RedrawEvent::PopupmenuSelect(selected) => {
-                state.popupmenu.select(*selected as i32, &state.hl_defs);
+                if state.wildmenu_shown {
+                    state.cmdline.wildmenu_select(*selected as i32);
+                } else {
+                    state.popupmenu.select(*selected as i32, &state.hl_defs);
+                }
             }
             RedrawEvent::TablineUpdate(cur, tabs) => {
                 let mut nvim = nvim.lock().unwrap();
@@ -737,15 +756,6 @@ fn handle_redraw_event(
             }
             RedrawEvent::CmdlineBlockHide() => {
                 state.cmdline.hide_block();
-            }
-            RedrawEvent::WildmenuShow(items) => {
-                state.cmdline.wildmenu_show(items);
-            }
-            RedrawEvent::WildmenuHide() => {
-                state.cmdline.wildmenu_hide();
-            }
-            RedrawEvent::WildmenuSelect(item) => {
-                state.cmdline.wildmenu_select(*item);
             }
             RedrawEvent::Ignored(_) => (),
             RedrawEvent::Unknown(e) => {
