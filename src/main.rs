@@ -68,6 +68,10 @@ struct Options {
     #[structopt(value_name = "ARGS", last = true)]
     nvim_args: Vec<String>,
 
+    /// Window size
+    #[structopt(long = "geometry", default_value = "1280x720")]
+    geometry: String,
+
     /// Disables externalized popup menu
     #[structopt(long = "disable-ext-popupmenu")]
     disable_ext_popupmenu: bool,
@@ -132,7 +136,9 @@ fn build(app: &gtk::Application, opts: &Options) {
     nvim.ui_attach(80, 30, &ui_opts)
         .expect("Failed to attach UI");
 
-    let ui = ui::UI::init(app, rx, Rc::new(RefCell::new(nvim)));
+    let size = opts.geometry.split("x").collect();
+
+    let ui = ui::UI::init(app, rx, size, Rc::new(RefCell::new(nvim)));
     ui.start();
 }
 
