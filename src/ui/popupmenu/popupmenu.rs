@@ -4,8 +4,10 @@ use std::rc::Rc;
 use gdk;
 use gtk;
 use gtk::prelude::*;
-use neovim_lib::neovim::Neovim;
-use neovim_lib::neovim_api::NeovimApi;
+use nvim_rs::{
+    neovim::Neovim,
+    runtime::ChildStdin,
+};
 use pango;
 
 use crate::nvim_bridge::{CompletionItem, PmenuColors};
@@ -98,7 +100,7 @@ impl Popupmenu {
     ///              is where all the (neovim) grids are drawn.
     /// * `nvim` - Neovim instance. Popupmenu will instruct neovim to act on
     ///            user interaction.
-    pub fn new(parent: &gtk::Overlay, nvim: Rc<RefCell<Neovim>>) -> Self {
+    pub fn new(parent: &gtk::Overlay, nvim: Rc<RefCell<Neovim<ChildStdin>>>) -> Self {
         let css_provider = gtk::CssProvider::new();
 
         let info_label = gtk::Label::new(Some(""));

@@ -18,7 +18,8 @@ extern crate gio;
 extern crate glib;
 extern crate gtk;
 extern crate log;
-extern crate neovim_lib;
+extern crate nvim_rs;
+extern crate async_trait;
 extern crate pango;
 extern crate pangocairo;
 #[cfg(feature = "libwebkit2gtk")]
@@ -26,9 +27,12 @@ extern crate webkit2gtk;
 
 use gio::prelude::*;
 
-use neovim_lib::neovim::{Neovim, UiAttachOptions};
-use neovim_lib::session::Session as NeovimSession;
-use neovim_lib::NeovimApi;
+use nvim_rs::{
+    UiAttachOptions,
+};
+// use nvim_rs::neovim::{Neovim, UiAttachOptions};
+// use nvim_rs::session::Session as NeovimSession;
+// use nvim_rs::NeovimApi;
 
 use std::cell::RefCell;
 use std::process::Command;
@@ -135,10 +139,11 @@ fn build(app: &gtk::Application, opts: &Options) {
         println!("nvim cmd: {:?}", cmd);
     }
 
-    let mut session = NeovimSession::new_child_cmd(&mut cmd).unwrap();
-    session.start_event_loop_handler(bridge);
+    // let mut session = NeovimSession::new_child_cmd(&mut cmd).unwrap();
+    // session.start_event_loop_handler(bridge);
 
-    let mut nvim = Neovim::new(session);
+    // let mut nvim = Neovim::new(session);
+    let (mut nvim, fut) = nvim_rs::create::new_child(bridge);
     nvim.subscribe("Gnvim")
         .expect("Failed to subscribe to 'Gnvim' events");
 

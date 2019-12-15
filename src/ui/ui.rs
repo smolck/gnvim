@@ -7,10 +7,10 @@ use std::rc::Rc;
 use gdk;
 use glib;
 use gtk;
-use neovim_lib::neovim::Neovim;
-use neovim_lib::neovim_api::NeovimApi;
-use neovim_lib::NeovimApiAsync;
-use neovim_lib::Value;
+use nvim_rs::{runtime:: ChildStdin, neovim::Neovim};
+// use nvim_rs::neovim_api::NeovimApi;
+// use nvim_rs::NeovimApiAsync;
+use nvim_rs::Value;
 
 use gtk::prelude::*;
 
@@ -91,7 +91,7 @@ pub struct UI {
     /// Main window.
     win: gtk::ApplicationWindow,
     /// Neovim instance.
-    nvim: Rc<RefCell<Neovim>>,
+    nvim: Rc<RefCell<Neovim<ChildStdin>>>,
     /// Channel to receive event from nvim.
     rx: glib::Receiver<Message>,
     /// Our internal state, containing basically everything we manipulate
@@ -110,7 +110,7 @@ impl UI {
         app: &gtk::Application,
         rx: glib::Receiver<Message>,
         window_size: (i32, i32),
-        nvim: Rc<RefCell<Neovim>>,
+        nvim: Rc<RefCell<Neovim<ChildStdin>>>,
     ) -> Self {
         // Create the main window.
         let window = gtk::ApplicationWindow::new(app);
@@ -376,7 +376,7 @@ fn handle_notify(
     window: &gtk::ApplicationWindow,
     notify: &Notify,
     state: &mut UIState,
-    nvim: Rc<RefCell<Neovim>>,
+    nvim: Rc<RefCell<Neovim<ChildStdin>>>,
 ) {
     match notify {
         Notify::RedrawEvent(events) => {
@@ -405,7 +405,7 @@ fn handle_notify(
 fn handle_gnvim_event(
     event: &GnvimEvent,
     state: &mut UIState,
-    nvim: Rc<RefCell<Neovim>>,
+    nvim: Rc<RefCell<Neovim<ChildStdin>>>,
 ) {
     match event {
         GnvimEvent::SetGuiColors(colors) => {
@@ -491,7 +491,7 @@ fn handle_redraw_event(
     window: &gtk::ApplicationWindow,
     events: &Vec<RedrawEvent>,
     state: &mut UIState,
-    nvim: Rc<RefCell<Neovim>>,
+    nvim: Rc<RefCell<Neovim<ChildStdin>>>,
 ) {
     for event in events {
         match event {

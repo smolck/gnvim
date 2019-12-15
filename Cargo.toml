@@ -20,6 +20,8 @@ libwebkit2gtk = [
 ]
 
 [dependencies]
+async-trait = "0.1.18"
+
 log = "0.4.8"
 env_logger = "0.7.1"
 
@@ -47,6 +49,9 @@ version = "0.8"
 features = ["v2_14"]
 optional = true
 
-[dependencies.neovim-lib]
+[dependencies.nvim-rs]
+version = "0.0.1"
+
+# [dependencies.neovim-lib]
 #git = "https://github.com/vhakulinen/neovim-lib"
-git = "https://github.com/daa84/neovim-lib"
+#git = "https://github.com/daa84/neovim-lib"

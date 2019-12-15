@@ -4,8 +4,9 @@ use std::rc::Rc;
 use glib;
 use gtk;
 use gtk::prelude::*;
-use neovim_lib::{
-    neovim_api::{Buffer, NeovimApi, Tabpage},
+use nvim_rs::{
+    neovim_api::{Buffer, Tabpage},
+    runtime::ChildStdin,
     Neovim, Value,
 };
 use pango;
@@ -31,7 +32,7 @@ pub struct Tabline {
 }
 
 impl Tabline {
-    pub fn new(nvim: Rc<RefCell<Neovim>>) -> Self {
+    pub fn new(nvim: Rc<RefCell<Neovim<ChildStdin>>>) -> Self {
         let notebook = gtk::Notebook::new();
         notebook.set_show_border(false);
 
@@ -67,7 +68,7 @@ impl Tabline {
     }
 
     fn get_tab_label(
-        nvim: &mut Neovim,
+        nvim: &mut Neovim<ChildStdin>,
         tab: &Tabpage,
         tab_name: &str,
     ) -> gtk::Label {
@@ -98,7 +99,7 @@ impl Tabline {
 
     pub fn update(
         &self,
-        nvim: &mut Neovim,
+        nvim: &mut Neovim<ChildStdin>,
         current: Tabpage,
         tabs: Vec<(Tabpage, String)>,
     ) {

@@ -3,8 +3,7 @@ use gtk::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use neovim_lib::neovim::Neovim;
-use neovim_lib::neovim_api::NeovimApi;
+use nvim_rs::{runtime::ChildStdin, neovim::Neovim};
 
 use crate::nvim_bridge;
 use crate::ui::ui::HlDefs;
@@ -26,7 +25,7 @@ pub struct Wildmenu {
 }
 
 impl Wildmenu {
-    pub fn new(nvim: Rc<RefCell<Neovim>>) -> Self {
+    pub fn new(nvim: Rc<RefCell<Neovim<ChildStdin>>>) -> Self {
         let css_provider = gtk::CssProvider::new();
 
         let frame = gtk::Frame::new(None);

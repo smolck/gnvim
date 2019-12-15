@@ -1,10 +1,12 @@
 use log::{debug, error};
 
+use async_trait::async_trait;
+
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::mpsc::{channel, Receiver, Sender};
 
-use neovim_lib::{neovim_api::Tabpage, Handler, RequestHandler, Value};
+use nvim_rs::{runtime::{AsyncWrite, ChildStdin}, neovim_api::Tabpage, Handler, Requester, Value};
 
 use crate::ui::color::{Color, Highlight};
 
@@ -913,13 +915,25 @@ impl NvimBridge {
     }
 }
 
-impl RequestHandler for NvimBridge {
-    fn handle_request(
+#[async_trait]
+impl Handler for NvimBridge {
+    type Writer = ChildStdin;
+
+    async fn handle_notify(&mut self, name: String, args: Vec<Value>, req: Requester<ChildStdin>) {
+        if let Some(notify) = parse_notify(&name, args) {
+            self.tx.send(Message::Notify(notify)).unwrap();
+        } else {
+            error!("Unknown notify: {}", name);
+        }
+    }
+
+    async fn handle_request(
         &mut self,
-        name: &str,
+        name: String,
         args: Vec<Value>,
+        req: Requester<ChildStdin>,
     ) -> Result<Value, Value> {
-        match name {
+        match name.as_ref() {
             "Gnvim" => match parse_request(args) {
                 Ok(msg) => {
                     self.tx
@@ -929,25 +943,14 @@ impl RequestHandler for NvimBridge {
                 }
                 Err(_) => Err("Failed to parse request".into()),
             },
+            /* "quit" => {
+                self.tx.send(Message::Close).unwrap();
+            } */
             _ => {
                 error!("Unknown request: {}", name);
                 Err("Unkown request".into())
             }
         }
-    }
-}
-
-impl Handler for NvimBridge {
-    fn handle_notify(&mut self, name: &str, args: Vec<Value>) {
-        if let Some(notify) = parse_notify(name, args) {
-            self.tx.send(Message::Notify(notify)).unwrap();
-        } else {
-            error!("Unknown notify: {}", name);
-        }
-    }
-
-    fn handle_close(&mut self) {
-        self.tx.send(Message::Close).unwrap();
     }
 }
 
